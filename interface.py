@@ -46,6 +46,7 @@ async def show_recipe_details(item_id, container):
     search_table.visible = False
     ui.notify('Item Clicked: ' + str(item_id))
     item_json = xiv.get_item(item_id)
+    table_text.set_text('Click to select a recipe for: ' + item_json['Name'])
     container.clear()
     with container:
         for recipe_id in item_json['Recipes']:
@@ -105,7 +106,7 @@ with ui.row().classes('w-full h-full'):
                 search_table = ui.table(columns=search_columns,
                                         rows=[], row_key='id')
                 search_table.visible = False
-                table_text.bind_visibility_from(search_table)
+                # table_text.bind_visibility_from(search_table)
                 search_table.add_slot('body-cell-icon', '''
                     <q-td :props="props">
                         <q-img
