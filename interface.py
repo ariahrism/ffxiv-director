@@ -129,4 +129,5 @@ with ui.row().classes('w-full h-full'):
 
     with ui.card():
         jv = JsonViewer()
-ui.run(show=False)
+
+ui.run(show=False, port=8188)

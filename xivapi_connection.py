@@ -2,6 +2,7 @@ import requests
 import json
 from nicegui import run
 
+
 class XIVAPIConnection:
     def __init__(self, api_key=""):
         self.api_key = api_key  # not mandatory
@@ -34,4 +35,3 @@ class XIVAPIConnection:
         url = self.base_url + "/recipe/" + str(recipe_id)
         results = requests.get(url)
         return results.json()
-
