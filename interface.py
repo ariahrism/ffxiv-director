@@ -19,13 +19,13 @@ xiv = XIVAPIConnection()
 
 async def populate_search(input_value):
     search_table.visible = False
+    recipes_row.clear()
     search_loading.visible = True
     call = await run.io_bound(xiv.search_for_item, input_value)
     jv.set_json(call)
     results = call['Results']
     search_table.rows.clear()
     search_loading.visible = False
-    recipes_row.clear()
     for result in results:
         search_table.add_rows({
             'id': result['ID'],
@@ -53,7 +53,7 @@ async def show_recipe_details(item_id, container):
             card.visible = False
             loading = ui.spinner('facebook', size='xl').classes('ml-14')
             recipe_json = await run.io_bound(xiv.get_recipe, recipe_id['ID'])
-            with card.on('click', lambda e, t=recipe_json: (ui.notify('Recipe Clicked:' + str(t['ID'])), jv.set_json(t))).classes('w-[175px]'):
+            with card.on('click', lambda e, t=recipe_json: (ui.notify('Recipe Clicked:' + str(t['ID'])), jv.set_json(t))).classes('min-w-[175px]'):
                 with ui.row().classes('w-full'):
                     with ui.column():
                         ui.label(recipe_json['ClassJob']['NameEnglish'])
@@ -97,7 +97,7 @@ with ui.row().classes('w-full h-full'):
             # with input_box:
             ui.button('', on_click=lambda: populate_search(
                 input_box.value), icon='search')
-
+        table_text = ui.label('Click on a row to select it:')
         with ui.row():
             with ui.row():
                 search_loading = ui.spinner(size='xl').classes('m-14')
@@ -105,6 +105,7 @@ with ui.row().classes('w-full h-full'):
                 search_table = ui.table(columns=search_columns,
                                         rows=[], row_key='id')
                 search_table.visible = False
+                table_text.bind_visibility_from(search_table)
                 search_table.add_slot('body-cell-icon', '''
                     <q-td :props="props">
                         <q-img
