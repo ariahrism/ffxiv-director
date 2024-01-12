@@ -1,4 +1,4 @@
-import requests
+import httpx
 from datetime import datetime
 import dateparser
 
@@ -6,6 +6,28 @@ import dateparser
 class UniversalisConnection:
     def __init__(self):
         self.base_url = "https://universalis.app/api/v2/"
+        self.datacenters = {}
+        self.build_datacenters()
+        
+    def build_datacenters(self):
+        data_center_url = "https://universalis.app/api/v2/data-centers"
+        response = httpx.get(data_center_url)
+        datacenters_list = response.json()
+
+        worlds_url = "https://universalis.app/api/v2/worlds"
+        response = httpx.get(worlds_url)
+        worldnames_list = response.json()
+
+        # Convert worldnames to a dictionary for easy lookup
+        worldnames_dict = {world['id']: world['name'] for world in worldnames_list}
+
+        # Iterate over datacenters
+        for datacenter in datacenters_list:
+            # Replace 'worlds' with a list of dictionaries containing 'id' and 'name'
+            datacenter['worlds'] = [{'id': world_id, 'name': worldnames_dict[world_id]} for world_id in datacenter['worlds']]
+
+        # Convert datacenters to a dictionary
+        self.datacenters = {datacenter['name']: datacenter for datacenter in datacenters_list}
 
     def trade_volume(self, item_id=None, worldName=None, dcName=None, fromTime=None, toTime=None):
         url = self.base_url + "extra/stats/trade-volume?"
@@ -19,7 +41,7 @@ class UniversalisConnection:
             url += f"from={self.to_epoch(fromTime)}&"
         if toTime:
             url += f"to={self.to_epoch(toTime)}"
-        results = requests.get(url).json()
+        results = httpx.get(url).json()
         return results
 
     def market(self, item_ids, worldDcRegion, numListings=None, historicalListings=None,
@@ -61,7 +83,7 @@ class UniversalisConnection:
             if fields:
                 url += f"fields={fields}"
             print(url)
-            results = requests.get(url).json()
+            results = httpx.get(url).json()
             return results
 
     def to_epoch(self, dt_string) -> int:
@@ -75,29 +97,3 @@ class UniversalisConnection:
         # Divide by 1000 to convert from milliseconds
         dt = datetime.fromtimestamp(epoch / 1000)
         return dt.strftime("%Y-%m-%d %H:%M:%S")
-
-# from nicegui import ui
-
-# class JsonViewer:
-#     def __init__(self):
-#         self.jsonviewer = ui.json_editor(
-#             {'content': {'json': {}}}).classes('w-[400px]')
-
-#     def set_json(self, value):
-#         self.jsonviewer.properties["content"]["json"] = value
-#         self.jsonviewer.update()
-#         self.jsonviewer.run_editor_method(':expand', 'path => true')
-
-# uc = UniversalisConnection()
-
-
-# json = uc.market(5057,72, statsWithinDays=1, historicalListings=100)
-# json2 = uc.market(5057,72, statsWithinDays=30, historicalListings=100)
-
-# with ui.row():
-#     jv = JsonViewer()
-#     jv.set_json(json)
-#     jv2 = JsonViewer()
-#     jv2.set_json(json2)
-
-# ui.run(show=False, port=8188)

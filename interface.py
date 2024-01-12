@@ -1,6 +1,7 @@
 from debug_ui import DebugUI
 from nicegui import ui, run
 from xivapi_connection import XIVApiHandler
+from universalis_connection import UniversalisConnection
 
 class BasicContainers:
     def __init__(self):
@@ -19,8 +20,8 @@ class BasicContainers:
             with self.sidebar:
                 self.search_button = ui.button(icon='search', on_click=page.search_clicked)\
                                         .classes('fixed top-4 min-h-[3.5rem] z-10')
-                self.search_history = ui.column().classes('mt-[2.6rem] pt-[2rem] items-center max-h-[90svh] grow p-0 overflow-y-auto').style(
-                    'mask-image: linear-gradient(to bottom, transparent 0%, black 30px, black calc(100% - 80px), transparent 100%); scrollbar-width: none;')
+                self.search_history = ui.column().classes('mt-[2.6rem] pt-[2rem] items-center max-h-[90svh] grow p-0 overflow-y-auto')\
+                    .style('mask-image: linear-gradient(to bottom, transparent 0%, black 30px, black calc(100% - 80px), transparent 100%); scrollbar-width: none;')
 
             with self.main_pane:
                 self.header = ui.row().classes('w-full min-h-[3.5rem] items-end p-4 whitespace-nowrap overflow-x-auto flex-nowrap')
@@ -34,6 +35,7 @@ class BasicContainers:
 class PageFunctionality:
     def __init__ (self, page_name):
         self.xiv = XIVApiHandler()
+        self.uc = UniversalisConnection()
         self.popup = ui.dialog()
         self.last_search = 'Iron Ingot'
 
@@ -72,7 +74,6 @@ class PageFunctionality:
                             ui.image(self.xiv.base_url + item['Icon']).classes('w-10')
                             ui.label(item['Name']) 
                 
-                                   
             self.search_box.bind_value(page,'last_search')
             search_results = ui.column()
             await build_results(self.search_box.value)
@@ -100,7 +101,7 @@ class PageFunctionality:
             with ui.column():
                 ui.html(item_json['Description']) if item_json['Description'] else None
                 with ui.row():
-                    ui.label('Craftable: ' + 'Yes' if 'Recipes' in item_json else 'No')
+                    ui.label('Craftable: Yes' if 'Recipes' in item_json else 'Craftable: No')
                     price = f'{str(item_json["PriceMid"])} gil' if 'GilShopItem' in item_json['GameContentLinks'] else 'No'
                     ui.label('Sold by Merchant: ' + price)
         
@@ -108,7 +109,18 @@ class PageFunctionality:
             ui.image(self.xiv.base_url + item_json['Icon']).classes('min-w-[3rem] min-h-[3rem]')\
                 .on('click', lambda: self.item_selected(item_id)).move(target_index=0)
                 #  TODO: Remove the item from the search history, since a new one will appear at the top
-        jv.set_json(item_json)
+        
+        self.populate_server_pane(item_id)
+        
+    def populate_server_pane(self, item_id):
+        dc = "Elemental"
+        with layout.server_pane as container:
+            container.clear()
+            
+            world_prices = self.uc.market(item_id, dc)
+            print(world_prices)
+            jv.set_json(world_prices)
+        
         
 class JsonViewer:
     def __init__(self):
