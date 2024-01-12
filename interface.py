@@ -71,7 +71,7 @@ class PageFunctionality:
                                         ).classes('items-center'):
                             ui.image(self.xiv.base_url + item['Icon']).classes('w-10')
                             ui.label(item['Name']) 
-                self.last_search = text
+                
                                    
             self.search_box.bind_value(page,'last_search')
             search_results = ui.column()
