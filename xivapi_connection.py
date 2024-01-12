@@ -1,5 +1,5 @@
 from nicegui import run
-
+import requests
 import asyncio
 from typing import Optional
 import httpx
@@ -35,10 +35,10 @@ class XIVApiHandler:
 
     def get_item(self, item_id):
         url = self.base_url + "/item/" + str(item_id)
-        results = httpx.get(url).json()
+        results = requests.get(url).json()
         return results
 
     def get_recipe(self, recipe_id):
         url = self.base_url + "/recipe/" + str(recipe_id)
-        results = httpx.get(url)
+        results = requests.get(url)
         return results.json()

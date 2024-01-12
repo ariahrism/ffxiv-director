@@ -143,4 +143,5 @@ layout = BasicContainers()
 debug_ui = DebugUI(globalvar = vars(layout), 
                    pane_names = ['top_pane', 'bottom_pane', 'item_pane', 'server_pane', 'main_pane', 'sidebar'])
 
-ui.run(show=False, port=8188, title='FFXIV Director')
+ui.run(show=False, port=8188, title='FFXIV Director',
+       favicon='https://xivapi.com/favicon.ico')

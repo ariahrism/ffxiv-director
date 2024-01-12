@@ -1,7 +1,6 @@
-import httpx
 from datetime import datetime
 import dateparser
-
+import requests
 
 class UniversalisConnection:
     def __init__(self):
@@ -11,11 +10,11 @@ class UniversalisConnection:
         
     def build_datacenters(self):
         data_center_url = "https://universalis.app/api/v2/data-centers"
-        response = httpx.get(data_center_url)
+        response = requests.get(data_center_url)
         datacenters_list = response.json()
 
         worlds_url = "https://universalis.app/api/v2/worlds"
-        response = httpx.get(worlds_url)
+        response = requests.get(worlds_url)
         worldnames_list = response.json()
 
         # Convert worldnames to a dictionary for easy lookup
@@ -41,7 +40,7 @@ class UniversalisConnection:
             url += f"from={self.to_epoch(fromTime)}&"
         if toTime:
             url += f"to={self.to_epoch(toTime)}"
-        results = httpx.get(url).json()
+        results = requests.get(url).json()
         return results
 
     def market(self, item_ids, worldDcRegion, numListings=None, historicalListings=None,
@@ -83,7 +82,7 @@ class UniversalisConnection:
             if fields:
                 url += f"fields={fields}"
             print(url)
-            results = httpx.get(url).json()
+            results = requests.get(url).json()
             return results
 
     def to_epoch(self, dt_string) -> int:
