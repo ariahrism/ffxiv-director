@@ -1,6 +1,8 @@
 from datetime import datetime
 import dateparser
 import requests
+import math
+from nicegui import ui, run
 
 class UniversalisConnection:
     def __init__(self):
@@ -9,39 +11,18 @@ class UniversalisConnection:
         self.build_datacenters()
         
     def build_datacenters(self):
-        data_center_url = "https://universalis.app/api/v2/data-centers"
-        response = requests.get(data_center_url)
-        datacenters_list = response.json()
-
-        worlds_url = "https://universalis.app/api/v2/worlds"
-        response = requests.get(worlds_url)
-        worldnames_list = response.json()
+        datacenters_list = requests.get("https://universalis.app/api/v2/data-centers").json()
+        worldnames_list = requests.get("https://universalis.app/api/v2/worlds").json()
 
         # Convert worldnames to a dictionary for easy lookup
         worldnames_dict = {world['id']: world['name'] for world in worldnames_list}
 
-        # Iterate over datacenters
+        # Merge worlds into datacenters
         for datacenter in datacenters_list:
-            # Replace 'worlds' with a list of dictionaries containing 'id' and 'name'
             datacenter['worlds'] = [{'id': world_id, 'name': worldnames_dict[world_id]} for world_id in datacenter['worlds']]
 
         # Convert datacenters to a dictionary
         self.datacenters = {datacenter['name']: datacenter for datacenter in datacenters_list}
-
-    def trade_volume(self, item_id=None, worldName=None, dcName=None, fromTime=None, toTime=None):
-        url = self.base_url + "extra/stats/trade-volume?"
-        if worldName:
-            url += f"world={worldName}&"
-        if dcName:
-            url += f"dcName={dcName}&"
-        if item_id:
-            url += f"item={item_id}&"
-        if fromTime:
-            url += f"from={self.to_epoch(fromTime)}&"
-        if toTime:
-            url += f"to={self.to_epoch(toTime)}"
-        results = requests.get(url).json()
-        return results
 
     def market(self, item_ids, worldDcRegion, numListings=None, historicalListings=None,
                    hq=None, statsWithinDays=None, historicalHours=None, fields=None) -> dict:
@@ -82,8 +63,45 @@ class UniversalisConnection:
             if fields:
                 url += f"fields={fields}"
             print(url)
-            results = requests.get(url).json()
+            try:
+                results = requests.get(url).json()
+            except:
+                ui.notify("Error retrieving market data")
+                return None
             return results
+        
+    async def get_server_prices(self, item_json, market):
+        fetched_prices = await run.io_bound(self.market,item_json['ID'], market)
+        server_table = {}
+        server_by_datacenter = {}
+        
+        for listing in fetched_prices['listings']:
+            #  Create server entry
+            if listing['worldName'] not in server_table:
+                server_table[listing['worldName']] = {'uploadTime': fetched_prices['worldUploadTimes'][str(listing['worldID'])],
+                                                'worldID' : listing['worldID'], 
+                                                'listings': []}
+            #  Add market listing to appropriate server
+            server_table[listing['worldName']]['listings'].append({'hq': listing['hq'], 'quantity': listing['quantity'], 'pricePerUnit': listing['pricePerUnit']})
+        server_table = dict(sorted(server_table.items(), key=lambda item: item[1]['uploadTime'], reverse=True))
+        
+        # Add each server to its datacenter
+        for server, details in server_table.items():
+            for datacenter in self.datacenters.values():
+                if server in [world['name'] for world in datacenter['worlds']]:
+                    if datacenter['name'] not in server_by_datacenter:
+                        server_by_datacenter[datacenter['name']] = {}
+                    server_by_datacenter[datacenter['name']][server] = details
+                    break
+                
+        # Ensure listings are sorted by pricePerUnit and servers are sorted by uploadTime
+        for datacenter, servers in server_by_datacenter.items():
+            for server, details in servers.items():
+                details['listings'] = sorted(details['listings'], key=lambda item: item['pricePerUnit'])
+            server_by_datacenter[datacenter] = dict(sorted(servers.items(), key=lambda item: item[1]['uploadTime'], reverse=True))
+
+        return server_table, server_by_datacenter
+
 
     def to_epoch(self, dt_string) -> int:
         dt = dateparser.parse(dt_string)
@@ -96,3 +114,18 @@ class UniversalisConnection:
         # Divide by 1000 to convert from milliseconds
         dt = datetime.fromtimestamp(epoch / 1000)
         return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+    def hours_ago(self, epoch=None, timestamp=None):
+        if epoch:
+            dt = datetime.fromtimestamp(epoch / 1000)
+        elif timestamp:
+            dt = dateparser.parse(timestamp)
+        else:
+            raise ValueError("Either epoch or datetime must be provided")
+        
+        hours_difference = math.ceil((datetime.now() - dt).total_seconds() / 3600)
+        return hours_difference
+
+
+
+
