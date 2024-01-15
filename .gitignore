@@ -1,6 +1,7 @@
- __pycache__/
- .idea/
- .nicegui/
+__pycache__/
+.idea/
+.nicegui/
+Notes/
 
  # Byte-compiled / optimized / DLL files
 __pycache__/
